@@ -411,6 +411,26 @@ describe('Automatic dependency resolution', () => {
 
     expect(service.config.value).toBe('test-value');
   });
+
+  it('should work without @Injectable when using factory functions', () => {
+    // No decorator needed when using factory functions with explicit kwargs
+    class Database {
+      constructor(public url: string) {}
+    }
+
+    class Service {
+      constructor(public db: Database) {}
+    }
+
+    const builder = new ContainerBuilder();
+    builder.singleton(Database, ({ url }) => new Database(url), { url: 'postgres://localhost' });
+    builder.singleton(Service, ({ db }) => new Service(db), { db: new Dep(Database) });
+
+    const container = builder.build();
+    const service = container.resolve(Service);
+
+    expect(service.db.url).toBe('postgres://localhost');
+  });
 });
 
 describe('Advanced use cases', () => {

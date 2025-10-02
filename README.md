@@ -6,12 +6,14 @@ A TypeScript dependency injection (DI) container that operates in local scope wi
 
 - **Local Scope**: No global state - all containers must be explicitly created
 - **Type Safety**: Full TypeScript support with type inference
+- **Automatic Resolution**: Register classes directly with automatic dependency resolution
 - **Singleton & Transient**: Control instance lifetime
 - **Factory Functions**: Support for custom factory functions
 - **String/Symbol Keys**: Use strings or symbols as dependency keys
 - **Testing Support**: `TestContainer` allows overriding dependencies for tests
 - **Cycle Detection**: Detects circular dependencies at build time
 - **Container Injection**: Container itself can be injected as a dependency
+- **Optional Decorators**: `@Injectable()` decorator is only needed for automatic resolution
 
 ## Installation
 
@@ -36,9 +38,11 @@ npm install independency-ts reflect-metadata
 
 ## Quick Start
 
+### Automatic Resolution (with `@Injectable()`)
+
 ```typescript
 import 'reflect-metadata';
-import { ContainerBuilder, Injectable, Dependency as Dep } from 'independency-ts';
+import { ContainerBuilder, Injectable } from 'independency-ts';
 
 @Injectable()
 class Database {
@@ -50,24 +54,38 @@ class UserService {
   constructor(public db: Database) {}
 }
 
-// Build container
 const builder = new ContainerBuilder();
 
-builder.singleton(
-  Database,
-  ({ url }) => new Database(url),
-  { url: 'postgres://localhost' }
-);
-
-builder.singleton(
-  UserService,
-  ({ db }) => new UserService(db),
-  { db: new Dep(Database) }
-);
+// Register classes directly - dependencies are auto-resolved
+builder.singleton(Database, ({ url }) => new Database(url), { url: 'postgres://localhost' });
+builder.singleton(UserService, UserService); // Auto-resolves Database dependency
 
 const container = builder.build();
+const service = container.resolve(UserService);
+console.log(service.db.url); // postgres://localhost
+```
 
-// Resolve dependencies
+### Manual Resolution (without `@Injectable()`)
+
+```typescript
+import 'reflect-metadata';
+import { ContainerBuilder, Dependency as Dep } from 'independency-ts';
+
+// No decorators needed when using explicit factory functions
+class Database {
+  constructor(public url: string) {}
+}
+
+class UserService {
+  constructor(public db: Database) {}
+}
+
+const builder = new ContainerBuilder();
+
+builder.singleton(Database, ({ url }) => new Database(url), { url: 'postgres://localhost' });
+builder.singleton(UserService, ({ db }) => new UserService(db), { db: new Dep(Database) });
+
+const container = builder.build();
 const service = container.resolve(UserService);
 console.log(service.db.url); // postgres://localhost
 ```
@@ -278,11 +296,35 @@ builder.singleton(Database, () => new Database());
 4. **Fail Fast**: Build-time validation
 5. **Testability**: Easy to override dependencies for testing
 
+## When is `@Injectable()` Required?
+
+The `@Injectable()` decorator is **only required for automatic dependency resolution**:
+
+**Required:**
+```typescript
+@Injectable()
+class UserService {
+  constructor(public db: Database) {}
+}
+builder.singleton(UserService, UserService); // Auto-resolves db: Database
+```
+
+**Not Required:**
+```typescript
+// No decorator needed with explicit factory functions
+class UserService {
+  constructor(public db: Database) {}
+}
+builder.singleton(UserService, ({ db }) => new UserService(db), { db: new Dep(Database) });
+```
+
+**Why?** TypeScript only emits parameter type metadata when a decorator is present on the class. Without metadata, you must use explicit factory functions with `Dependency` objects to specify dependencies.
+
 ## Differences from Python Version
 
 - Uses `reflect-metadata` for type reflection instead of Python's `get_type_hints`
 - Generics are compile-time only (TypeScript limitation)
-- Uses decorators (`@Injectable()`) for metadata emission
+- Optional `@Injectable()` decorator for automatic resolution (Python doesn't need decorators)
 - Factory functions receive a single object parameter with named properties
 - No native forward reference support (use string keys instead)
 

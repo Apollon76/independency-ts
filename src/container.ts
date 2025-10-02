@@ -440,7 +440,9 @@ export class ContainerBuilder {
   }
 }
 
-// Helper decorator for automatic dependency injection (optional)
+// Helper decorator for automatic dependency injection
+// NOTE: This decorator is required for TypeScript to emit parameter type metadata.
+// Without it, you must provide explicit kwargs with Dependency objects.
 export function Injectable() {
   return function <T extends Constructor>(target: T) {
     return target;
