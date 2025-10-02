@@ -144,7 +144,7 @@ describe('Container', () => {
     const builder = new ContainerBuilder();
 
     expect(() => {
-      builder.singleton(A, ({ x, y }: any) => new A(x), { x: 1, y: 1 });
+      builder.singleton(A, ({ x }: any) => new A(x), { x: 1, y: 1 });
     }).toThrow(ContainerError);
   });
 

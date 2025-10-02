@@ -73,6 +73,7 @@ function getParameterTypes(target: any): any[] {
 }
 
 // Get parameter names from function
+// eslint-disable-next-line @typescript-eslint/ban-types
 function getParameterNames(func: Function): string[] {
   const fnStr = func.toString().replace(/\/\*[\s\S]*?\*\//g, ''); // Remove block comments
   const match = fnStr.match(/\(([^)]*)\)/);
